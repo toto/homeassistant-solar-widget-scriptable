@@ -106,62 +106,117 @@ function addSymbolAndText(stack, symbolName, text, font = Font.mediumSystemFont(
   const label = stack.addText(text);
   label.textColor = Color.white();
   label.font = font;
+
+  return { label, image: stackImage }
 }
 
-function addChargeImageStack(homeData, chargeStack) {
+function addChargeImageStack(homeData, chargeStack, font = Font.mediumSystemFont(12), size = 22) {
   let batteySymbol = "bolt.batteryblock.fill";
   if (homeData.chargeState === PackState.Standby) {
     batteySymbol = "batteryblock.fill";
   }
-  addSymbolAndText(chargeStack, batteySymbol, `${homeData.soc}${homeData.socUnit}`);
+  const elemnts = []
+  elemnts.push(addSymbolAndText(chargeStack, batteySymbol, `${homeData.soc}${homeData.socUnit}`, font, size));
+  
   if (SHOW_ZERO_SOLAR_INPUT || homeData.solarInput > 0) {
     chargeStack.addSpacer(4)
-    addSymbolAndText(chargeStack, "sun.max.fill", `${homeData.solarInput}${homeData.solarInputUnit}`);
+    elemnts.push(addSymbolAndText(chargeStack, "sun.max.fill", `${homeData.solarInput}${homeData.solarInputUnit}`, font, size));
   }
+  return elemnts;
+}
+
+/** Takes watt as a number and returns a string with either W or kW added
+ * with the appropriate number of decimal points
+ */
+function wattText(watt) {
+  if (typeof watt != "number") {
+    console.error(`Trying to show ${watt} but it's a ${typeof watt} not a 'number'`);
+    return "";
+  }
+  if (watt > 1000) {
+    return `${(watt / 1000).toFixed(2)}kW`;
+  }
+  return `${watt.toFixed(0)}W`;
 }
 
 function createMediumWidget(homeData) {
-  const widget = new ListWidget();
+  const mediumWidget = new ListWidget();
   const gradient = new LinearGradient();
   gradient.colors = [new Color("#0064A6"), new Color("#D6A94B")];
   gradient.locations = [0, 1];
-  widget.backgroundGradient = gradient;
+  mediumWidget.backgroundGradient = gradient;
 
-  const homeName = widget.addText(`☀️⚡️ ${homeData.name}`);
+  const homeName = mediumWidget.addText(`☀️⚡️ ${homeData.name}`);
   homeName.textColor = Color.white();
   homeName.font = Font.boldSystemFont(12);
 
-  widget.addSpacer();
+  mediumWidget.addSpacer();
 
   // Current Charge to home
-  const houseStack = widget.addStack();
+  const houseStack = mediumWidget.addStack();
   houseStack.centerAlignContent();
-  const wattText = `${homeData.currentWatts.toFixed(
-    homeData.currentWatts > 100 ? 0 : 0
-  )}W`;
-  const titleText = houseStack.addText(wattText);
+  const watt = wattText(homeData.currentWatts);
+  const titleText = houseStack.addText(watt);
   titleText.textColor = Color.white();
   titleText.font = Font.boldSystemFont(32);
 
   // Battery and solar input status
-  const chargeStack = widget.addStack();
+  const chargeStack = mediumWidget.addStack();
   chargeStack.spacing = 1;
   chargeStack.centerAlignContent();
   addChargeImageStack(homeData, chargeStack);
 
   // Total Output today
-  const totalStack = widget.addStack();
+  const totalStack = mediumWidget.addStack();
   totalStack.spacing = 2;
   totalStack.centerAlignContent();
   const totalkWh = `${homeData.generationValue.toFixed(1)}kWh`;
   addSymbolAndText(totalStack, "house.fill", totalkWh, Font.mediumSystemFont(12), 20)
   
-  widget.addSpacer();
+  mediumWidget.addSpacer();
 
   // Uptate timestamp Footer
-  const updatedAtText = widget.addText(homeData.lastUpdatedLabel);
+  const updatedAtText = mediumWidget.addText(`Updated: ${homeData.lastUpdatedLabel}`);
   updatedAtText.textColor = Color.white();
   updatedAtText.font = Font.caption2();
+
+  return mediumWidget;
+}
+
+function createRectangularLockScreenWidget(homeData) {
+  const widget = new ListWidget();
+  
+  // First row
+  const firstRow = widget.addStack();
+  firstRow.centerAlignContent();
+  firstRow.spacing = 1;
+  const watts = wattText(homeData.currentWatts);
+  addSymbolAndText(firstRow, "bolt.fill", watts, Font.boldSystemFont(14), 20)
+  firstRow.addSpacer();
+
+  // Second row
+  const secondRowStack = widget.addStack();
+  secondRowStack.centerAlignContent();
+  secondRowStack.spacing = 1;
+  addChargeImageStack(homeData, secondRowStack);
+  
+  
+  // third row
+  const thirdRow = widget.addStack();
+  
+  thirdRow.centerAlignContent();
+  thirdRow.spacing = 3;
+  
+  const totalkWh = `${homeData.generationValue.toFixed(1)}kWh`;
+  addSymbolAndText(thirdRow, "house.fill", totalkWh, Font.mediumSystemFont(12), 18)
+
+  thirdRow.addSpacer(5);
+  const updatedText = thirdRow.addText(homeData.lastUpdatedLabel);
+  updatedText.leftAlignText();
+  updatedText.textColor = new Color("FFFFFF", 0.5);
+  updatedText.font = Font.systemFont(12);
+
+  widget.addSpacer();
 
   return widget;
 }
@@ -172,10 +227,10 @@ function createCircularLockScreenWidget(homeData) {
 
   widget.addSpacer();
 
-  const wattText = `${homeData.currentWatts.toFixed(0)}W`;
-  wattText.minimumScaleFactor = 0.75;
-  const titleText = widget.addText(wattText);
+  const watt = wattText(homeData.currentWatts);
+  const titleText = widget.addText(watt);
   titleText.textColor = Color.white();
+  titleText.minimumScaleFactor = 0.75;
   titleText.centerAlignText();
   titleText.font = Font.boldSystemFont(14);
 
@@ -194,7 +249,7 @@ function createCircularLockScreenWidget(homeData) {
 function extractHomeData(data) {
   const result = {
     lastUpdated: null,
-    lastUpdatedLabel: "Not updated yet",
+    lastUpdatedLabel: "-",
     currentWatts: 0, // W
     generationValue: 0, // kWh
     updated: null,
@@ -266,7 +321,7 @@ function extractHomeData(data) {
       formatter.useShortDateStyle();
     }
 
-    result.lastUpdatedLabel = `Updated ${formatter.string(
+    result.lastUpdatedLabel = `${formatter.string(
       result.lastUpdated,
       new Date()
     )}`;
@@ -282,18 +337,26 @@ console.log(`Historic Energy Sensor: ${TODAY_ENERGY_SENSOR_ID}`);
 const data = await Promise.all(promises);
 const homeData = extractHomeData(data);
 
+let widget;
+
 if (config.runsInAccessoryWidget) {
+  console.log(`Create accessory widget (${config.widgetFamily})…`)
   if (config.widgetFamily == "accessoryCircular") {
-    let widget = createCircularLockScreenWidget(homeData);
-    Script.setWidget(widget);
-    Script.complete();
+    widget = createCircularLockScreenWidget(homeData);
+  } else if (config.widgetFamily == "accessoryRectangular") {
+    widget = createRectangularLockScreenWidget(homeData);
   }
 } else if (config.runsInWidget) {
-  let widget = createMediumWidget(homeData);
-  Script.setWidget(widget);
-  Script.complete();
+  console.log(`Create system widget (${config.widgetFamily})…`)
+  widget = createMediumWidget(homeData);
 } else {
+  widget = createMediumWidget(homeData);
   console.log("Not running in widget or home screen");
   console.log(`config = ${JSON.stringify(config)}`);
   console.log(`Data: ${JSON.stringify(homeData, undefined, 2)}`)
 }
+
+if (widget) {
+  Script.setWidget(widget);
+}
+Script.complete();

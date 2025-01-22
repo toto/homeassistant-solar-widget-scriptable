@@ -4,11 +4,15 @@ A widget for showing live solar and battery information from [Home Assistant](ht
 
 ## About
 
-It currently provides a widget for the small cirular lock screen widgets (knowm as `accessoryCircular`) and small home screen widgets (known as `systemSmall`). 
+It currently provides a widget for:
+
+- small cirular lock screen widgets (knowm as `accessoryCircular`) 
+- rectangular larger lock screen widgets (knowm as `accessoryRectangular`) 
+- small home screen widgets (known as `systemSmall`). 
 
 ![System Small Widget](img/system-small.jpeg)
 
-![Accessory Circular Widget](img/accessory-circular.jpeg)
+![Accessory Circular and Rectangular Widget](img/accessory.jpeg)
 
 ## Shown data
 
