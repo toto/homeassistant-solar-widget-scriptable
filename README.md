@@ -8,7 +8,7 @@ It currently provides a widget for the small cirular lock screen widgets (knowm 
 
 ![System Small Widget](img/system-small.jpeg)
 
-![Accessory Circular Widget](img/accessory-small.jpeg)
+![Accessory Circular Widget](img/accessory-circular.jpeg)
 
 ## Shown data
 
